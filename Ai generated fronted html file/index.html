@@ -1,0 +1,857 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>AI Services Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0c0c0f;--card:#131318;--card2:#1a1a22;--border:#222230;--border2:#2e2e3e;
+  --pu:#7c5cfc;--pu2:#6344e8;--pul:#a48bff;
+  --cy:#00c9b1;--cyl:#4dfce8;
+  --gr:#22c55e;--grl:#4ade80;
+  --re:#ff4d6a;--rel:#ff7a8a;
+  --am:#f59e0b;--aml:#fbbf24;
+  --tx:#f0f0f5;--mu:#6b6b80;--mu2:#44444f;
+}
+body{background:var(--bg);color:var(--tx);font-family:'DM Sans',sans-serif;min-height:100vh}
+.mono{font-family:'JetBrains Mono',monospace}
+
+/* scrollbar */
+::-webkit-scrollbar{width:4px;height:4px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:4px}
+
+/* layout */
+.sidebar{position:fixed;left:0;top:0;bottom:0;width:220px;background:var(--card);border-right:1px solid var(--border);display:flex;flex-direction:column;z-index:100}
+.main{margin-left:220px;min-height:100vh;padding:24px}
+
+/* sidebar */
+.logo{padding:20px 18px 16px;border-bottom:1px solid var(--border)}
+.logo-title{font-size:15px;font-weight:600;letter-spacing:-.3px}
+.logo-sub{font-size:11px;color:var(--mu);margin-top:2px;font-family:'JetBrains Mono',monospace}
+.nav{padding:12px 10px;flex:1;display:flex;flex-direction:column;gap:2px}
+.nav-item{display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:400;color:var(--mu);transition:all .15s;border:1px solid transparent}
+.nav-item:hover{background:var(--card2);color:var(--tx)}
+.nav-item.active{background:rgba(124,92,252,.12);color:var(--pul);border-color:rgba(124,92,252,.2)}
+.nav-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.sidebar-bottom{padding:14px;border-top:1px solid var(--border)}
+
+/* config panel */
+.config-bar{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px 16px;margin-bottom:20px;display:flex;gap:16px;align-items:center;flex-wrap:wrap}
+.cfg-group{display:flex;flex-direction:column;gap:4px}
+.cfg-label{font-size:10px;color:var(--mu);font-family:'JetBrains Mono',monospace;letter-spacing:.5px}
+.cfg-input{background:var(--card2);border:1px solid var(--border2);color:var(--tx);border-radius:6px;padding:6px 10px;font-size:12px;font-family:'JetBrains Mono',monospace;outline:none;transition:border-color .2s}
+.cfg-input:focus{border-color:var(--pu)}
+.cfg-input[type=password]{letter-spacing:2px}
+
+/* cards */
+.card{background:var(--card);border:1px solid var(--border);border-radius:12px;overflow:hidden}
+.card-head{padding:14px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px}
+.card-icon{width:30px;height:30px;border-radius:8px;display:grid;place-items:center;font-size:14px;flex-shrink:0}
+.card-title{font-size:14px;font-weight:500}
+.card-sub{font-size:11px;color:var(--mu);font-family:'JetBrains Mono',monospace}
+.card-body{padding:16px}
+
+/* status badge */
+.status{display:inline-flex;align-items:center;gap:5px;padding:3px 8px;border-radius:20px;font-size:10px;font-family:'JetBrains Mono',monospace}
+.s-ok{background:rgba(34,197,94,.1);color:var(--grl);border:1px solid rgba(34,197,94,.2)}
+.s-err{background:rgba(255,77,106,.1);color:var(--rel);border:1px solid rgba(255,77,106,.2)}
+.s-warn{background:rgba(245,158,11,.1);color:var(--aml);border:1px solid rgba(245,158,11,.2)}
+.s-dot{width:5px;height:5px;border-radius:50%;background:currentColor}
+
+/* form elements */
+input,select,textarea{background:var(--card2);border:1px solid var(--border2);color:var(--tx);border-radius:8px;outline:none;font-family:'DM Sans',sans-serif;font-size:13px;transition:border-color .2s;padding:9px 12px;width:100%}
+input:focus,select:focus,textarea:focus{border-color:var(--pu)}
+textarea{resize:vertical;min-height:80px;font-family:'JetBrains Mono',monospace;font-size:12px}
+select option{background:var(--card)}
+
+/* buttons */
+.btn{border:none;border-radius:8px;cursor:pointer;font-family:'DM Sans',sans-serif;font-weight:500;font-size:13px;padding:9px 18px;transition:all .15s;white-space:nowrap}
+.btn-pu{background:var(--pu);color:#fff}.btn-pu:hover:not(:disabled){background:var(--pu2)}
+.btn-cy{background:var(--cy);color:#000}.btn-cy:hover:not(:disabled){opacity:.9}
+.btn-gr{background:transparent;color:var(--tx);border:1px solid var(--border2)}.btn-gr:hover{border-color:var(--pu);color:var(--pul)}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.btn-sm{padding:6px 12px;font-size:12px}
+
+/* response box */
+.resp{background:var(--card2);border:1px solid var(--border2);border-radius:8px;padding:12px;font-family:'JetBrains Mono',monospace;font-size:11px;line-height:1.7;color:var(--tx);word-break:break-all;min-height:60px;max-height:300px;overflow-y:auto;white-space:pre-wrap}
+.resp.ok{border-color:rgba(34,197,94,.3)}
+.resp.err{border-color:rgba(255,77,106,.3);color:var(--rel)}
+.resp.loading{color:var(--mu);animation:pulse 1.5s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+
+/* grid layouts */
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px}
+.flex-row{display:flex;gap:10px;align-items:flex-end}
+.flex-col{display:flex;flex-direction:column;gap:10px}
+
+/* health grid */
+.health-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:10px}
+.health-card{background:var(--card2);border:1px solid var(--border2);border-radius:10px;padding:14px;text-align:center;cursor:pointer;transition:all .2s}
+.health-card:hover{border-color:var(--pu)}
+.health-card.ok{border-color:rgba(34,197,94,.3)}
+.health-card.err{border-color:rgba(255,77,106,.3)}
+.health-name{font-size:12px;font-weight:500;margin-top:8px}
+.health-url{font-size:10px;color:var(--mu);font-family:'JetBrains Mono',monospace;margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+/* sections */
+.section{display:none}
+.section.active{display:block}
+.section-title{font-size:18px;font-weight:600;margin-bottom:4px;letter-spacing:-.4px}
+.section-sub{font-size:12px;color:var(--mu);margin-bottom:18px}
+.label{font-size:12px;color:var(--mu);margin-bottom:5px;font-weight:400}
+.divider{height:1px;background:var(--border);margin:16px 0}
+.tag{font-size:10px;padding:2px 7px;border-radius:4px;font-family:'JetBrains Mono',monospace}
+.tag-pu{background:rgba(124,92,252,.15);color:var(--pul)}
+.tag-cy{background:rgba(0,201,177,.1);color:var(--cyl)}
+.tag-gr{background:rgba(34,197,94,.1);color:var(--grl)}
+.tag-am{background:rgba(245,158,11,.1);color:var(--aml)}
+
+/* chat messages */
+.msg-wrap{display:flex;flex-direction:column;gap:10px;max-height:360px;overflow-y:auto;padding:12px;background:var(--card2);border:1px solid var(--border2);border-radius:8px;margin-bottom:10px}
+.msg{padding:10px 13px;border-radius:10px;font-size:13px;line-height:1.6;max-width:85%}
+.msg-u{background:rgba(124,92,252,.2);border:1px solid rgba(124,92,252,.2);align-self:flex-end}
+.msg-a{background:var(--card);border:1px solid var(--border);align-self:flex-start}
+.msg-meta{font-size:10px;color:var(--mu);font-family:'JetBrains Mono',monospace;margin-top:3px}
+
+/* chunk display */
+.chunk{background:var(--card2);border:1px solid var(--border2);border-radius:8px;padding:10px 12px;margin-top:8px}
+.chunk-header{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+.chunk-text{font-size:11px;font-family:'JetBrains Mono',monospace;color:var(--mu);line-height:1.6}
+.score-bar{height:3px;background:var(--border2);border-radius:2px;overflow:hidden;margin-top:4px}
+.score-fill{height:100%;border-radius:2px;background:var(--cy);transition:width .4s}
+</style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<nav class="sidebar">
+  <div class="logo">
+    <div class="logo-title">AI Services</div>
+    <div class="logo-sub">local dashboard</div>
+  </div>
+  <div class="nav">
+    <div class="nav-item active" onclick="show('overview')" id="nav-overview">
+      <div class="nav-dot" style="background:#7c5cfc"></div>Overview
+    </div>
+    <div class="nav-item" onclick="show('llm')" id="nav-llm">
+      <div class="nav-dot" style="background:#00c9b1"></div>LLM Router
+    </div>
+    <div class="nav-item" onclick="show('rag')" id="nav-rag">
+      <div class="nav-dot" style="background:#7c5cfc"></div>RAG App
+    </div>
+    <div class="nav-item" onclick="show('chat')" id="nav-chat">
+      <div class="nav-dot" style="background:#22c55e"></div>Chat App
+    </div>
+    <div class="nav-item" onclick="show('youtube')" id="nav-youtube">
+      <div class="nav-dot" style="background:#ff4d6a"></div>YouTube
+    </div>
+    <div class="nav-item" onclick="show('research')" id="nav-research">
+      <div class="nav-dot" style="background:#f59e0b"></div>Research
+    </div>
+  </div>
+  <div class="sidebar-bottom">
+    <div style="font-size:10px;color:var(--mu);font-family:'JetBrains Mono',monospace">v1.0 · local</div>
+  </div>
+</nav>
+
+<!-- MAIN -->
+<main class="main">
+
+  <!-- CONFIG BAR -->
+  <div class="config-bar">
+    <div class="cfg-group">
+      <div class="cfg-label">API KEY</div>
+      <input class="cfg-input" id="cfg-key" type="password" value="mypassword123" style="width:160px"/>
+    </div>
+    <div class="cfg-group">
+      <div class="cfg-label">LLM ROUTER</div>
+      <input class="cfg-input" id="cfg-llm" value="http://localhost:8001" style="width:180px"/>
+    </div>
+    <div class="cfg-group">
+      <div class="cfg-label">RAG APP</div>
+      <input class="cfg-input" id="cfg-rag" value="http://localhost:8000" style="width:180px"/>
+    </div>
+    <div class="cfg-group">
+      <div class="cfg-label">CHAT APP</div>
+      <input class="cfg-input" id="cfg-chat" value="http://localhost:8002" style="width:180px"/>
+    </div>
+    <div class="cfg-group">
+      <div class="cfg-label">YOUTUBE</div>
+      <input class="cfg-input" id="cfg-yt" value="http://localhost:8005" style="width:180px"/>
+    </div>
+    <div class="cfg-group">
+      <div class="cfg-label">RESEARCH</div>
+      <input class="cfg-input" id="cfg-res" value="http://localhost:8004" style="width:180px"/>
+    </div>
+    <button class="btn btn-pu btn-sm" onclick="checkAll()" style="margin-top:16px">Check All</button>
+  </div>
+
+  <!-- ── OVERVIEW ── -->
+  <div class="section active" id="sec-overview">
+    <div class="section-title">Overview</div>
+    <div class="section-sub">Health status of all services</div>
+
+    <div class="health-grid" id="health-grid">
+      <div class="health-card" id="hc-llm" onclick="show('llm')">
+        <div style="font-size:24px">🔀</div>
+        <div class="health-name">LLM Router</div>
+        <div class="health-url" id="hu-llm">localhost:8001</div>
+        <div style="margin-top:8px" id="hs-llm"><span class="status s-warn"><span class="s-dot"></span>checking</span></div>
+      </div>
+      <div class="health-card" id="hc-rag" onclick="show('rag')">
+        <div style="font-size:24px">📚</div>
+        <div class="health-name">RAG App</div>
+        <div class="health-url" id="hu-rag">localhost:8000</div>
+        <div style="margin-top:8px" id="hs-rag"><span class="status s-warn"><span class="s-dot"></span>checking</span></div>
+      </div>
+      <div class="health-card" id="hc-chat" onclick="show('chat')">
+        <div style="font-size:24px">💬</div>
+        <div class="health-name">Chat App</div>
+        <div class="health-url" id="hu-chat">localhost:8002</div>
+        <div style="margin-top:8px" id="hs-chat"><span class="status s-warn"><span class="s-dot"></span>checking</span></div>
+      </div>
+      <div class="health-card" id="hc-yt" onclick="show('youtube')">
+        <div style="font-size:24px">🎬</div>
+        <div class="health-name">YouTube</div>
+        <div class="health-url" id="hu-yt">localhost:8003</div>
+        <div style="margin-top:8px" id="hs-yt"><span class="status s-warn"><span class="s-dot"></span>checking</span></div>
+      </div>
+      <div class="health-card" id="hc-res" onclick="show('research')">
+        <div style="font-size:24px">🔬</div>
+        <div class="health-name">Research</div>
+        <div class="health-url" id="hu-res">localhost:8004</div>
+        <div style="margin-top:8px" id="hs-res"><span class="status s-warn"><span class="s-dot"></span>checking</span></div>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+    <div class="grid2" style="margin-top:0">
+      <div class="card">
+        <div class="card-head">
+          <div class="card-icon" style="background:rgba(0,201,177,.1)">📋</div>
+          <div><div class="card-title">Quick Test</div><div class="card-sub">test all endpoints fast</div></div>
+        </div>
+        <div class="card-body flex-col">
+          <div class="label">Test message</div>
+          <input id="ov-msg" value="What is machine learning?" />
+          <button class="btn btn-pu" onclick="quickTest()">Run Quick Test</button>
+          <div class="resp" id="ov-resp" style="min-height:80px">Results will appear here...</div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-head">
+          <div class="card-icon" style="background:rgba(124,92,252,.1)">⚙</div>
+          <div><div class="card-title">Service Info</div><div class="card-sub">endpoints reference</div></div>
+        </div>
+        <div class="card-body">
+          <div style="display:flex;flex-direction:column;gap:8px;font-size:12px">
+            <div class="flex-row" style="align-items:center;gap:8px"><span class="tag tag-cy">POST</span><span class="mono">/chat</span><span style="color:var(--mu)">LLM Router</span></div>
+            <div class="flex-row" style="align-items:center;gap:8px"><span class="tag tag-pu">POST</span><span class="mono">/upload</span><span style="color:var(--mu)">RAG App</span></div>
+            <div class="flex-row" style="align-items:center;gap:8px"><span class="tag tag-pu">POST</span><span class="mono">/query</span><span style="color:var(--mu)">RAG App</span></div>
+            <div class="flex-row" style="align-items:center;gap:8px"><span class="tag tag-gr">POST</span><span class="mono">/chat</span><span style="color:var(--mu)">Chat App</span></div>
+            <div class="flex-row" style="align-items:center;gap:8px"><span class="tag tag-am">POST</span><span class="mono">/analyze</span><span style="color:var(--mu)">YouTube</span></div>
+            <div class="flex-row" style="align-items:center;gap:8px"><span class="tag tag-am">POST</span><span class="mono">/search</span><span style="color:var(--mu)">Research</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── LLM ROUTER ── -->
+  <div class="section" id="sec-llm">
+    <div class="section-title">LLM Router</div>
+    <div class="section-sub">Groq → Gemini → Local auto-fallback</div>
+    <div class="grid2">
+      <div class="card">
+        <div class="card-head">
+          <div class="card-icon" style="background:rgba(0,201,177,.1)">💬</div>
+          <div><div class="card-title">Chat</div><div class="card-sub">POST /chat</div></div>
+          <span class="status s-warn" id="llm-status" style="margin-left:auto"><span class="s-dot"></span>unknown</span>
+        </div>
+        <div class="card-body flex-col">
+          <div class="label">System prompt</div>
+          <input id="llm-system" value="You are a helpful assistant." />
+          <div class="label">Model (optional)</div>
+          <select id="llm-model">
+            <option value="">Auto (Groq default)</option>
+            <option value="llama-3.3-70b-versatile">llama-3.3-70b-versatile</option>
+            <option value="llama3-8b-8192">llama3-8b-8192</option>
+            <option value="mixtral-8x7b-32768">mixtral-8x7b-32768</option>
+            <option value="gemini-2.5-flash">gemini-2.5-flash</option>
+          </select>
+          <div class="label">Message</div>
+          <textarea id="llm-msg">Explain what a REST API is in 2 sentences.</textarea>
+          <button class="btn btn-cy" onclick="callLLM()">Send →</button>
+          <div class="label">Response</div>
+          <div class="resp" id="llm-resp">Response will appear here...</div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-head">
+          <div class="card-icon" style="background:rgba(124,92,252,.1)">⚡</div>
+          <div><div class="card-title">Status</div><div class="card-sub">GET /status · GET /models</div></div>
+        </div>
+        <div class="card-body flex-col">
+          <button class="btn btn-gr btn-sm" onclick="getLLMStatus()">Get Status</button>
+          <div class="resp" id="llm-status-resp" style="min-height:120px">Click to get status...</div>
+          <button class="btn btn-gr btn-sm" onclick="getLLMModels()">List Models</button>
+          <div class="resp" id="llm-models-resp" style="min-height:80px">Click to list models...</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── RAG APP ── -->
+  <div class="section" id="sec-rag">
+    <div class="section-title">RAG App</div>
+    <div class="section-sub">Upload documents → query with reranking</div>
+    <div class="grid2">
+      <div class="card">
+        <div class="card-head">
+          <div class="card-icon" style="background:rgba(124,92,252,.1)">📤</div>
+          <div><div class="card-title">Upload Document</div><div class="card-sub">POST /upload</div></div>
+        </div>
+        <div class="card-body flex-col">
+          <div class="label">User ID</div>
+          <input id="rag-uid-up" value="user1" />
+          <div class="label">Chunk size (words)</div>
+          <input id="rag-chunk" type="number" value="80" />
+          <div class="label">File (.txt or .pdf)</div>
+          <input type="file" id="rag-file" accept=".txt,.pdf" style="padding:6px"/>
+          <button class="btn btn-pu" onclick="uploadDoc()">Upload →</button>
+          <div class="resp" id="rag-up-resp">Upload result will appear here...</div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-head">
+          <div class="card-icon" style="background:rgba(0,201,177,.1)">🔍</div>
+          <div><div class="card-title">Query</div><div class="card-sub">POST /query</div></div>
+        </div>
+        <div class="card-body flex-col">
+          <div class="label">User ID</div>
+          <input id="rag-uid-q" value="user1" />
+          <div class="label">Top K chunks</div>
+          <input id="rag-topk" type="number" value="3" />
+          <div class="label">Question</div>
+          <textarea id="rag-query">What is FastAPI?</textarea>
+          <button class="btn btn-cy" onclick="queryRAG()">Query →</button>
+          <div class="label">Answer</div>
+          <div class="resp" id="rag-ans">Answer will appear here...</div>
+          <div id="rag-chunks-wrap"></div>
+        </div>
+      </div>
+    </div>
+    <div style="margin-top:16px" class="card">
+      <div class="card-head">
+        <div class="card-icon" style="background:rgba(34,197,94,.1)">📋</div>
+        <div><div class="card-title">My Documents</div><div class="card-sub">GET /docs/{user_id}</div></div>
+      </div>
+      <div class="card-body flex-col">
+        <div class="flex-row">
+          <input id="rag-uid-list" value="user1" />
+          <button class="btn btn-gr btn-sm" onclick="listDocs()" style="white-space:nowrap">List Docs</button>
+        </div>
+        <div class="resp" id="rag-docs-resp">Click to list documents...</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── CHAT APP ── -->
+  <div class="section" id="sec-chat">
+    <div class="section-title">Chat App</div>
+    <div class="section-sub">Personalised memory chatbot</div>
+    <div class="grid2">
+      <div class="card">
+        <div class="card-head">
+          <div class="card-icon" style="background:rgba(34,197,94,.1)">💬</div>
+          <div><div class="card-title">Chat</div><div class="card-sub">POST /chat</div></div>
+        </div>
+        <div class="card-body flex-col">
+          <div class="flex-row">
+            <div class="flex-col" style="flex:1"><div class="label">User ID</div><input id="ch-uid" value="user1"/></div>
+            <div class="flex-col" style="flex:1"><div class="label">Session ID</div><input id="ch-sid" value="default"/></div>
+          </div>
+          <div class="label">System prompt (optional)</div>
+          <input id="ch-system" placeholder="You are a helpful assistant."/>
+          <div class="label">Remember this fact (optional)</div>
+          <input id="ch-remember" placeholder="e.g. User prefers short answers"/>
+          <div class="msg-wrap" id="ch-messages">
+            <div style="color:var(--mu);font-size:12px;text-align:center">Start a conversation...</div>
+          </div>
+          <div class="flex-row">
+            <input id="ch-msg" placeholder="Type message..." onkeydown="if(event.key==='Enter')sendChat()"/>
+            <button class="btn btn-pu" onclick="sendChat()">Send</button>
+          </div>
+          <button class="btn btn-gr btn-sm" onclick="clearChat()">Clear Session</button>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-head">
+          <div class="card-icon" style="background:rgba(245,158,11,.1)">🧠</div>
+          <div><div class="card-title">Memory</div><div class="card-sub">GET /memory · POST /memory</div></div>
+        </div>
+        <div class="card-body flex-col">
+          <div class="label">User ID</div>
+          <input id="mem-uid" value="user1"/>
+          <div class="flex-row">
+            <button class="btn btn-gr btn-sm" onclick="getMemory()">Get Memory</button>
+            <button class="btn btn-gr btn-sm" onclick="clearMemory()">Clear Memory</button>
+          </div>
+          <div class="resp" id="mem-resp" style="min-height:120px">Memory facts will appear here...</div>
+          <div class="label">Add memory fact</div>
+          <input id="mem-fact" placeholder="User is a Python developer"/>
+          <button class="btn btn-pu btn-sm" onclick="addMemory()">Add Fact</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── YOUTUBE ── -->
+  <div class="section" id="sec-youtube">
+    <div class="section-title">YouTube Tool</div>
+    <div class="section-sub">Analyse videos — emotions, summary, roadmap</div>
+    <div class="grid2">
+      <div class="card">
+        <div class="card-head">
+          <div class="card-icon" style="background:rgba(255,77,106,.1)">▶</div>
+          <div><div class="card-title">Analyse Video</div><div class="card-sub">POST /analyze</div></div>
+        </div>
+        <div class="card-body flex-col">
+          <div class="label">YouTube URL</div>
+          <input id="yt-url" placeholder="https://youtube.com/watch?v=..."/>
+          <button class="btn btn-pu" onclick="analyzeVideo()">Analyse →</button>
+          <div class="resp" id="yt-resp" style="min-height:80px">Job result will appear here...</div>
+          <div id="yt-poll-wrap"></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-head">
+          <div class="card-icon" style="background:rgba(245,158,11,.1)">📋</div>
+          <div><div class="card-title">Playlist</div><div class="card-sub">POST /playlist</div></div>
+        </div>
+        <div class="card-body flex-col">
+          <div class="label">Playlist URL</div>
+          <input id="pl-url" placeholder="https://youtube.com/playlist?list=..."/>
+          <div class="label">Max videos</div>
+          <input id="pl-max" type="number" value="5"/>
+          <button class="btn btn-gr" onclick="getPlaylist()">Get Videos →</button>
+          <div class="resp" id="pl-resp" style="min-height:100px">Playlist videos will appear here...</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── RESEARCH ── -->
+  <div class="section" id="sec-research">
+    <div class="section-title">Research Tool</div>
+    <div class="section-sub">Search ArXiv + Semantic Scholar papers</div>
+    <div class="grid2">
+      <div class="card">
+        <div class="card-head">
+          <div class="card-icon" style="background:rgba(245,158,11,.1)">🔍</div>
+          <div><div class="card-title">Search Papers</div><div class="card-sub">POST /search</div></div>
+        </div>
+        <div class="card-body flex-col">
+          <div class="label">Query</div>
+          <input id="res-query" value="RAG retrieval augmented generation"/>
+          <div class="label">Max results</div>
+          <input id="res-max" type="number" value="4"/>
+          <div class="label">Source</div>
+          <select id="res-source">
+            <option value="both">Both (ArXiv + Semantic Scholar)</option>
+            <option value="arxiv">ArXiv only</option>
+            <option value="semantic_scholar">Semantic Scholar only</option>
+          </select>
+          <button class="btn btn-pu" onclick="searchPapers()">Search →</button>
+          <div class="resp" id="res-resp" style="min-height:100px">Results will appear here...</div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-head">
+          <div class="card-icon" style="background:rgba(0,201,177,.1)">📄</div>
+          <div><div class="card-title">Summarise Paper</div><div class="card-sub">GET /summarize/{id}</div></div>
+        </div>
+        <div class="card-body flex-col">
+          <div class="label">ArXiv Paper ID</div>
+          <input id="res-pid" placeholder="e.g. 2005.11401"/>
+          <button class="btn btn-cy" onclick="summarizePaper()">Summarise →</button>
+          <div class="resp" id="res-sum-resp" style="min-height:200px">Summary will appear here...</div>
+        </div>
+      </div>
+    </div>
+    <div style="margin-top:16px" class="card">
+      <div class="card-head">
+        <div class="card-icon" style="background:rgba(124,92,252,.1)">📊</div>
+        <div><div class="card-title">Trending Papers</div><div class="card-sub">GET /trending/{topic}</div></div>
+      </div>
+      <div class="card-body flex-col">
+        <div class="flex-row">
+          <input id="res-trend" value="large language models"/>
+          <button class="btn btn-gr btn-sm" onclick="getTrending()" style="white-space:nowrap">Get Trending</button>
+        </div>
+        <div class="resp" id="res-trend-resp">Trending papers will appear here...</div>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<script>
+// ── helpers ──────────────────────────────────────────
+const $ = id => document.getElementById(id)
+const key  = () => $('cfg-key').value
+const urls = {
+  llm  : () => $('cfg-llm').value,
+  rag  : () => $('cfg-rag').value,
+  chat : () => $('cfg-chat').value,
+  yt   : () => $('cfg-yt').value,
+  res  : () => $('cfg-res').value,
+}
+const H = () => ({'X-API-Key': key(), 'Content-Type': 'application/json'})
+
+function show(id) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'))
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'))
+  $(`sec-${id}`).classList.add('active')
+  $(`nav-${id}`).classList.add('active')
+}
+
+function setResp(id, data, isErr=false) {
+  const el = $(id)
+  el.className = 'resp ' + (isErr ? 'err' : 'ok')
+  el.textContent = typeof data === 'string' ? data : JSON.stringify(data, null, 2)
+}
+
+function setLoading(id, msg='Loading...') {
+  const el = $(id)
+  el.className = 'resp loading'
+  el.textContent = msg
+}
+
+async function apiFetch(url, opts={}) {
+  const r = await fetch(url, {
+    headers: H(),
+    ...opts
+  })
+  const data = await r.json()
+  if (!r.ok) throw new Error(data.detail || JSON.stringify(data))
+  return data
+}
+
+// ── health checks ────────────────────────────────────
+async function checkOne(id, url) {
+  const el  = $(`hs-${id}`)
+  const hc  = $(`hc-${id}`)
+  const hu  = $(`hu-${id}`)
+  hu.textContent = url.replace('http://', '')
+  el.innerHTML   = '<span class="status s-warn"><span class="s-dot"></span>checking</span>'
+  try {
+    const r = await fetch(`${url}/health`, {signal: AbortSignal.timeout(5000)})
+    const d = await r.json()
+    if (r.ok) {
+      el.innerHTML = '<span class="status s-ok"><span class="s-dot"></span>online</span>'
+      hc.className = 'health-card ok'
+    } else throw new Error()
+  } catch {
+    el.innerHTML = '<span class="status s-err"><span class="s-dot"></span>offline</span>'
+    hc.className = 'health-card err'
+  }
+}
+
+async function checkAll() {
+  checkOne('llm',  urls.llm())
+  checkOne('rag',  urls.rag())
+  checkOne('chat', urls.chat())
+  checkOne('yt',   urls.yt())
+  checkOne('res',  urls.res())
+}
+
+// ── quick test ───────────────────────────────────────
+async function quickTest() {
+  const msg = $('ov-msg').value
+  setLoading('ov-resp', 'Testing LLM Router...')
+  try {
+    const d = await apiFetch(`${urls.llm()}/chat`, {
+      method: 'POST',
+      body: JSON.stringify({message: msg})
+    })
+    setResp('ov-resp', `Provider: ${d.provider}\nModel: ${d.model}\n\n${d.reply}`)
+  } catch(e) {
+    setResp('ov-resp', `LLM Router: ${e.message}`, true)
+  }
+}
+
+// ── LLM Router ───────────────────────────────────────
+async function callLLM() {
+  const msg    = $('llm-msg').value
+  const system = $('llm-system').value
+  const model  = $('llm-model').value
+  setLoading('llm-resp')
+  try {
+    const body = {message: msg, system}
+    if (model) body.model = model
+    const d = await apiFetch(`${urls.llm()}/chat`, {
+      method: 'POST', body: JSON.stringify(body)})
+    setResp('llm-resp', `[${d.provider} · ${d.model}]\n\n${d.reply}`)
+    $('llm-status').innerHTML = `<span class="s-dot"></span>${d.provider}`
+    $('llm-status').className = 'status s-ok'
+  } catch(e) { setResp('llm-resp', e.message, true) }
+}
+
+async function getLLMStatus() {
+  setLoading('llm-status-resp')
+  try {
+    const d = await apiFetch(`${urls.llm()}/status`)
+    setResp('llm-status-resp', d)
+  } catch(e) { setResp('llm-status-resp', e.message, true) }
+}
+
+async function getLLMModels() {
+  setLoading('llm-models-resp')
+  try {
+    const d = await apiFetch(`${urls.llm()}/models`)
+    setResp('llm-models-resp', d)
+  } catch(e) { setResp('llm-models-resp', e.message, true) }
+}
+
+// ── RAG App ──────────────────────────────────────────
+async function uploadDoc() {
+  const file = $('rag-file').files[0]
+  if (!file) { alert('Select a file first'); return }
+  setLoading('rag-up-resp', 'Uploading and embedding...')
+  const fd = new FormData()
+  fd.append('file', file)
+  try {
+    const r = await fetch(
+      `${urls.rag()}/upload?user_id=${$('rag-uid-up').value}&chunk_size=${$('rag-chunk').value}`,
+      {method:'POST', headers:{'X-API-Key': key()}, body: fd})
+    const d = await r.json()
+    if (!r.ok) throw new Error(d.detail)
+    setResp('rag-up-resp', d)
+  } catch(e) { setResp('rag-up-resp', e.message, true) }
+}
+
+async function queryRAG() {
+  const q   = $('rag-query').value
+  const uid = $('rag-uid-q').value
+  const k   = parseInt($('rag-topk').value)
+  setLoading('rag-ans', 'Searching and generating...')
+  $('rag-chunks-wrap').innerHTML = ''
+  try {
+    const d = await apiFetch(`${urls.rag()}/query`, {
+      method:'POST', body: JSON.stringify({query:q, user_id:uid, top_k:k})})
+    setResp('rag-ans', `[${d.provider}] ${d.answer}\n\n(${d.total_ms}ms)`)
+    // show chunks
+    if (d.chunks?.length) {
+      const wrap = $('rag-chunks-wrap')
+      wrap.innerHTML = `<div class="label" style="margin-top:12px">Retrieved chunks (${d.chunks.length})</div>`
+      d.chunks.forEach((c,i) => {
+        const score = c.rerank_score ?? c.score ?? 0
+        wrap.innerHTML += `
+          <div class="chunk">
+            <div class="chunk-header">
+              <span class="tag tag-pu">#${i+1}</span>
+              <span class="tag tag-cy">${c.doc_id}</span>
+              <span class="tag tag-gr" style="margin-left:auto">${score.toFixed(3)}</span>
+            </div>
+            <div class="chunk-text">${c.text.substring(0,200)}${c.text.length>200?'...':''}</div>
+            <div class="score-bar"><div class="score-fill" style="width:${Math.min(100,Math.max(0,score)*10)}%"></div></div>
+          </div>`
+      })
+    }
+  } catch(e) { setResp('rag-ans', e.message, true) }
+}
+
+async function listDocs() {
+  setLoading('rag-docs-resp')
+  try {
+    const d = await apiFetch(`${urls.rag()}/docs/${$('rag-uid-list').value}`)
+    setResp('rag-docs-resp', d)
+  } catch(e) { setResp('rag-docs-resp', e.message, true) }
+}
+
+// ── Chat App ─────────────────────────────────────────
+async function sendChat() {
+  const msg = $('ch-msg').value.trim()
+  if (!msg) return
+  $('ch-msg').value = ''
+  addChatMsg(msg, 'user')
+  addChatMsg('...', 'ai', 'thinking')
+  try {
+    const body = {
+      message: msg,
+      user_id: $('ch-uid').value,
+      session: $('ch-sid').value,
+    }
+    if ($('ch-system').value) body.system = $('ch-system').value
+    if ($('ch-remember').value) { body.remember = $('ch-remember').value; $('ch-remember').value = '' }
+    const d = await apiFetch(`${urls.chat()}/chat`, {method:'POST', body:JSON.stringify(body)})
+    updateLastMsg(`${d.reply}\n[${d.provider} · ${d.total_ms}ms · memory:${d.memory_count}]`)
+  } catch(e) { updateLastMsg(`Error: ${e.message}`, true) }
+}
+
+function addChatMsg(text, role, id='') {
+  const wrap = $('ch-messages')
+  const div  = document.createElement('div')
+  div.className = `msg msg-${role[0]}`
+  if (id) div.id = 'chat-thinking'
+  div.textContent = text
+  wrap.appendChild(div)
+  wrap.scrollTop = wrap.scrollHeight
+}
+
+function updateLastMsg(text, isErr=false) {
+  const el = $('chat-thinking')
+  if (el) { el.id=''; el.textContent = text; if(isErr) el.style.color='var(--rel)' }
+}
+
+async function clearChat() {
+  try {
+    await apiFetch(`${urls.chat()}/history/${$('ch-uid').value}/${$('ch-sid').value}`,
+      {method:'DELETE'})
+    $('ch-messages').innerHTML = '<div style="color:var(--mu);font-size:12px;text-align:center">Session cleared</div>'
+  } catch(e) { alert(e.message) }
+}
+
+async function getMemory() {
+  setLoading('mem-resp')
+  try {
+    const d = await apiFetch(`${urls.chat()}/memory/${$('mem-uid').value}`)
+    setResp('mem-resp', d)
+  } catch(e) { setResp('mem-resp', e.message, true) }
+}
+
+async function addMemory() {
+  const fact = $('mem-fact').value.trim()
+  if (!fact) return
+  try {
+    const d = await apiFetch(`${urls.chat()}/memory/${$('mem-uid').value}`,
+      {method:'POST', body:JSON.stringify({fact})})
+    setResp('mem-resp', d)
+    $('mem-fact').value = ''
+  } catch(e) { setResp('mem-resp', e.message, true) }
+}
+
+async function clearMemory() {
+  try {
+    const d = await apiFetch(`${urls.chat()}/memory/${$('mem-uid').value}`,
+      {method:'DELETE'})
+    setResp('mem-resp', d)
+  } catch(e) { setResp('mem-resp', e.message, true) }
+}
+
+// ── YouTube ──────────────────────────────────────────
+async function analyzeVideo() {
+  const url = $('yt-url').value.trim()
+  if (!url) { alert('Enter a YouTube URL'); return }
+  setLoading('yt-resp', 'Starting analysis job...')
+  $('yt-poll-wrap').innerHTML = ''
+  try {
+    const d = await apiFetch(`${urls.yt()}/analyze`, {
+      method:'POST', body:JSON.stringify({url})})
+    setResp('yt-resp', `Job started: ${d.job_id}\nPolling for result...`)
+    pollJob(d.job_id)
+  } catch(e) { setResp('yt-resp', e.message, true) }
+}
+
+async function pollJob(jobId) {
+  let attempts = 0
+  const poll = async () => {
+    if (attempts++ > 30) { setResp('yt-resp', 'Timeout — job taking too long', true); return }
+    try {
+      const d = await apiFetch(`${urls.yt()}/job/${jobId}`)
+      if (d.status === 'done') {
+        const r  = d.result
+        const out = [
+          `Title: ${r.video_info?.title || 'N/A'}`,
+          `Channel: ${r.video_info?.channel || 'N/A'}`,
+          `Duration: ${r.video_info?.duration || 0}s`,
+          `Provider: ${r.provider}`,
+          '',
+          'ANALYSIS:',
+          r.analysis || 'N/A',
+          '',
+          'ROADMAP:',
+          r.roadmap || 'N/A',
+          '',
+          'EMOTIONS:',
+          JSON.stringify(r.emotions?.slice(0,5), null, 2),
+        ].join('\n')
+        setResp('yt-resp', out)
+      } else if (d.status === 'error') {
+        setResp('yt-resp', `Error: ${d.error}`, true)
+      } else {
+        setResp('yt-resp', `Status: ${d.status} (attempt ${attempts})...`)
+        setTimeout(poll, 3000)
+      }
+    } catch(e) { setResp('yt-resp', e.message, true) }
+  }
+  poll()
+}
+
+async function getPlaylist() {
+  const url = $('pl-url').value.trim()
+  if (!url) { alert('Enter a playlist URL'); return }
+  setLoading('pl-resp')
+  try {
+    const d = await apiFetch(`${urls.yt()}/playlist`, {
+      method:'POST',
+      body:JSON.stringify({url, max_videos:parseInt($('pl-max').value)})})
+    const out = d.videos.map((v,i) =>
+      `${i+1}. ${v.title}\n   ${v.url}\n   Duration: ${v.duration}s`
+    ).join('\n\n')
+    setResp('pl-resp', out || 'No videos found')
+  } catch(e) { setResp('pl-resp', e.message, true) }
+}
+
+// ── Research ─────────────────────────────────────────
+async function searchPapers() {
+  setLoading('res-resp', 'Searching papers...')
+  try {
+    const d = await apiFetch(`${urls.res()}/search`, {
+      method:'POST',
+      body:JSON.stringify({
+        query      : $('res-query').value,
+        max_results: parseInt($('res-max').value),
+        source     : $('res-source').value,
+      })})
+    const out = d.papers.map((p,i) =>
+      `${i+1}. ${p.title}\n   Authors: ${p.authors?.join(', ')}\n   ${p.url}\n   ${p.abstract?.substring(0,150)}...`
+    ).join('\n\n')
+    setResp('res-resp', `Found ${d.count} papers:\n\n${out}`)
+  } catch(e) { setResp('res-resp', e.message, true) }
+}
+
+async function summarizePaper() {
+  const pid = $('res-pid').value.trim()
+  if (!pid) { alert('Enter a paper ID'); return }
+  setLoading('res-sum-resp', 'Fetching and summarising...')
+  try {
+    const d = await apiFetch(`${urls.res()}/summarize/${pid}`)
+    setResp('res-sum-resp', `${d.paper.title}\n\n${d.summary}\n\n[${d.provider} · ${d.total_ms}ms]`)
+  } catch(e) { setResp('res-sum-resp', e.message, true) }
+}
+
+async function getTrending() {
+  const topic = $('res-trend').value.trim()
+  if (!topic) return
+  setLoading('res-trend-resp', 'Fetching trending papers...')
+  try {
+    const d = await apiFetch(`${urls.res()}/trending/${encodeURIComponent(topic)}`)
+    const out = d.papers.map((p,i) =>
+      `${i+1}. ${p.title}\n   ${p.published || p.year}\n   ${p.url}`
+    ).join('\n\n')
+    setResp('res-trend-resp', out || 'No papers found')
+  } catch(e) { setResp('res-trend-resp', e.message, true) }
+}
+
+// ── init ─────────────────────────────────────────────
+checkAll()
+</script>
+</body>
+</html>

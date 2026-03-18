@@ -1,0 +1,98 @@
+version: "3.9"
+
+services:
+
+  # ── Dashboard (static HTML served by nginx) ──────────
+  dashboard:
+    image: nginx:alpine
+    ports:
+      - "3000:80"
+    volumes:
+      - ./dashboard:/usr/share/nginx/html:ro
+    restart: unless-stopped
+
+  # ── LLM Router ───────────────────────────────────────
+  llm-router:
+    build: ./llm-router
+    ports:
+      - "8001:7860"
+    env_file: ./llm-router/.env
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:7860/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # ── RAG App ──────────────────────────────────────────
+  rag-app:
+    build: ./rag-app
+    ports:
+      - "8000:7860"
+    env_file: ./rag-app/.env
+    volumes:
+      - rag-chromadb:/app/chromadb
+    environment:
+      - LLM_ROUTER_URL=http://llm-router:7860
+    restart: unless-stopped
+    depends_on:
+      - llm-router
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:7860/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # ── Chat App ─────────────────────────────────────────
+  chat-app:
+    build: ./chat-app
+    ports:
+      - "8002:7860"
+    env_file: ./chat-app/.env
+    environment:
+      - LLM_ROUTER_URL=http://llm-router:7860
+    restart: unless-stopped
+    depends_on:
+      - llm-router
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:7860/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # ── YouTube Tool ─────────────────────────────────────
+  youtube-app:
+    build: ./youtube-app
+    ports:
+      - "8005:7860"
+    env_file: ./youtube-app/.env
+    environment:
+      - LLM_ROUTER_URL=http://llm-router:7860
+    restart: unless-stopped
+    depends_on:
+      - llm-router
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:7860/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # ── Research Tool ────────────────────────────────────
+  research-app:
+    build: ./research-app
+    ports:
+      - "8004:7860"
+    env_file: ./research-app/.env
+    environment:
+      - LLM_ROUTER_URL=http://llm-router:7860
+    restart: unless-stopped
+    depends_on:
+      - llm-router
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:7860/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+volumes:
+  rag-chromadb:
